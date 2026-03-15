@@ -1,0 +1,32 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+worktrees/
+results/
+queue/
+
+# Eval results: keep directory structure, ignore TSV data
+!evals/results/
+evals/results/*.tsv
+
+# Agent prompt files (generated per-session by launchers)
+CLAUDE.md
+AGENTS.md
+
+# Experimental code/artifacts
+dev/
+
+# Results file
+results.tsv
+
+# Internal docs (not for public repo)
+PAPER_OUTLINE.md
+CODE_REVIEW.md
+QA_REPORT.md
