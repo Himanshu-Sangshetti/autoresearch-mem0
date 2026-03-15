@@ -12,9 +12,10 @@ worktrees/
 results/
 queue/
 
-# Eval results: keep directory structure, ignore TSV data
+# Eval results: keep directory structure, ignore TSV data and generated JSON
 !evals/results/
 evals/results/*.tsv
+evals/results.json
 
 # Agent prompt files (generated per-session by launchers)
 CLAUDE.md

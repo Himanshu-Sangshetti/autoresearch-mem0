@@ -2,11 +2,21 @@
 Autoresearch pretraining script. Single-GPU, single-file.
 Cherry-picked and simplified from nanochat.
 Usage: uv run train.py
+       uv run train.py --laptop   # 4GB VRAM profile
 """
 
+import json
 import os
+import sys
 os.environ["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"
 os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+
+# Write laptop profile before importing prepare (prepare reads it at import time)
+if "--laptop" in sys.argv:
+    _profile_path = os.path.join(os.path.expanduser("~"), ".cache", "autoresearch", "profile.json")
+    os.makedirs(os.path.dirname(_profile_path), exist_ok=True)
+    with open(_profile_path, "w") as f:
+        json.dump({"laptop": True}, f)
 
 import gc
 import math
@@ -449,6 +459,18 @@ FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
 # Model size
 DEPTH = 8               # number of transformer layers
 DEVICE_BATCH_SIZE = 128  # per-device batch size (reduce if OOM)
+
+# Laptop overrides (4GB VRAM)
+import argparse
+_parser = argparse.ArgumentParser()
+_parser.add_argument("--laptop", action="store_true", help="4GB VRAM profile")
+_train_args, _ = _parser.parse_known_args()
+if _train_args.laptop:
+    DEPTH = 4
+    DEVICE_BATCH_SIZE = 4
+    TOTAL_BATCH_SIZE = 2**14
+    WINDOW_PATTERN = "L"
+    print("Laptop profile: DEPTH=4, DEVICE_BATCH_SIZE=4, TOTAL_BATCH_SIZE=16384, WINDOW_PATTERN=L")
 
 # ---------------------------------------------------------------------------
 # Setup: tokenizer, model, optimizer, dataloader
