@@ -74,7 +74,16 @@ def record_run(condition: str, run_id: str, source: str) -> None:
     """Copy results.tsv to evals/results/{condition}_{run_id}.tsv"""
     source_path = Path(source)
     if not source_path.is_absolute():
-        source_path = REPO_ROOT / source_path
+        source_path = (REPO_ROOT / source_path).resolve()
+    else:
+        source_path = source_path.resolve()
+
+    # Prevent path traversal: source must be under REPO_ROOT
+    try:
+        source_path.relative_to(REPO_ROOT.resolve())
+    except ValueError:
+        print(f"Error: source path must be inside the repo: {source_path}", file=sys.stderr)
+        sys.exit(1)
 
     if not source_path.exists():
         print(f"Error: source file not found: {source_path}", file=sys.stderr)

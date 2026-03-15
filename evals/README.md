@@ -2,6 +2,16 @@
 
 This directory contains the evaluation framework for comparing autoresearch **with** vs **without** mem0 memory.
 
+**See [EVAL_GUIDE.md](EVAL_GUIDE.md)** for a full explanation of how the eval works, what gets trained, and how baseline vs memory differ.
+
+## Dashboard
+
+```bash
+uv run streamlit run evals/dashboard.py
+```
+
+Opens a Streamlit dashboard: runs table, val_bpb-over-experiments chart, aggregate metrics. Data refreshes every 30s or on Refresh click.
+
 ## Metrics
 
 | Metric | Definition |
@@ -16,10 +26,17 @@ This directory contains the evaluation framework for comparing autoresearch **wi
 - **baseline**: Use `program.md`. No mem0. Agent has only git + results.tsv.
 - **memory**: Use `program_mem0.md`. mem0 enabled. Agent queries and stores experiments in mem0.
 
+## 40-Experiment Protocol (Laptop)
+
+- **Structure**: 2 sessions × 5 experiments × 4 runs = 40 experiments
+- **Conditions**: 2 runs baseline, 2 runs memory
+- **Laptop**: Use `--laptop` on prepare and train (4GB VRAM)
+- **Time**: ~2 min per experiment → ~80 min GPU total
+
 ## Single-Session Protocol
 
 1. **Runs**: 5 runs per condition (baseline_1..5, memory_1..5).
-2. **Experiments per run**: 20 (or until human stops).
+2. **Experiments per run**: 20 (or 5 for 40-exp protocol).
 3. **Setup each run**:
    ```bash
    uv run python evals/run_experiment.py --condition baseline --run-id 1
@@ -53,4 +70,4 @@ Tests cross-session memory. Memory condition should outperform baseline when the
 
 ## Output
 
-Results are stored in `evals/results/{condition}_{run_id}.tsv`. The analyze script aggregates and reports mean ± std for best val_bpb, time to target, and redundancy.
+Results are stored in `evals/results/{condition}_{run_id}.tsv`. The dashboard and `analyze.py` aggregate and report mean ± std for best val_bpb, time to target, and redundancy.

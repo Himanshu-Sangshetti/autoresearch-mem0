@@ -5,10 +5,12 @@ Downloads data shards and trains a BPE tokenizer.
 Usage:
     python prepare.py                  # full prep (download + tokenizer)
     python prepare.py --num-shards 8   # download only 8 shards (for testing)
+    python prepare.py --laptop          # laptop profile (4GB VRAM): smaller seq, fewer shards
 
 Data and tokenizer are stored in ~/.cache/autoresearch/.
 """
 
+import json
 import os
 import sys
 import time
@@ -30,6 +32,19 @@ import torch
 MAX_SEQ_LEN = 2048       # context length
 TIME_BUDGET = 300        # training time budget in seconds (5 minutes)
 EVAL_TOKENS = 40 * 524288  # number of tokens for val eval
+
+# Laptop profile: applied when ~/.cache/autoresearch/profile.json has {"laptop": true}
+_PROFILE_PATH = os.path.join(os.path.expanduser("~"), ".cache", "autoresearch", "profile.json")
+if os.path.exists(_PROFILE_PATH):
+    try:
+        with open(_PROFILE_PATH) as f:
+            _p = json.load(f)
+        if _p.get("laptop"):
+            MAX_SEQ_LEN = 256
+            TIME_BUDGET = 120
+            EVAL_TOKENS = 40 * 8192
+    except (json.JSONDecodeError, OSError):
+        pass
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -370,13 +385,29 @@ def evaluate_bpb(model, tokenizer, batch_size):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Prepare data and tokenizer for autoresearch")
-    parser.add_argument("--num-shards", type=int, default=10, help="Number of training shards to download (-1 = all). Val shard is always pinned.")
+    parser.add_argument("--num-shards", type=int, default=None, help="Number of training shards to download (-1 = all). Val shard is always pinned.")
     parser.add_argument("--download-workers", type=int, default=8, help="Number of parallel download workers")
+    parser.add_argument("--laptop", action="store_true", help="Laptop profile (4GB VRAM): smaller seq, fewer shards, 2 min budget")
     args = parser.parse_args()
 
-    num_shards = MAX_SHARD if args.num_shards == -1 else args.num_shards
+    if args.laptop:
+        os.makedirs(os.path.dirname(_PROFILE_PATH), exist_ok=True)
+        with open(_PROFILE_PATH, "w") as f:
+            json.dump({"laptop": True}, f)
+        # Apply laptop constants for this run
+        globals()["MAX_SEQ_LEN"] = 256
+        globals()["TIME_BUDGET"] = 120
+        globals()["EVAL_TOKENS"] = 40 * 8192
+        default_shards = 2
+    else:
+        default_shards = 10
+
+    num_shards = args.num_shards if args.num_shards is not None else default_shards
+    num_shards = MAX_SHARD if num_shards == -1 else num_shards
 
     print(f"Cache directory: {CACHE_DIR}")
+    if args.laptop:
+        print("Laptop profile: MAX_SEQ_LEN=256, TIME_BUDGET=120, EVAL_TOKENS=327680")
     print()
 
     # Step 1: Download data

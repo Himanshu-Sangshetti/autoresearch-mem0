@@ -37,7 +37,7 @@ def load_results() -> dict[str, list[pd.DataFrame]]:
         condition, run_id = parts[0], parts[1]
         try:
             df = pd.read_csv(f, sep="\t")
-            if "val_bpb" in df.columns and "status" in df.columns:
+            if "val_bpb" in df.columns:
                 by_condition[condition].append(df)
         except Exception as e:
             print(f"Warning: could not parse {f}: {e}")
@@ -54,8 +54,10 @@ def best_val_bpb(df: pd.DataFrame) -> float:
 
 def time_to_target(df: pd.DataFrame, target: float) -> int:
     """Number of experiments (rows) until first val_bpb <= target. -1 if never reached."""
-    for i, row in df.iterrows():
-        if row["val_bpb"] > 0 and row["val_bpb"] <= target:
+    val_bpb = pd.to_numeric(df["val_bpb"], errors="coerce")
+    for i in range(len(df)):
+        v = val_bpb.iloc[i]
+        if v > 0 and v <= target:
             return int(i) + 1  # 1-indexed experiment number
     return -1
 
